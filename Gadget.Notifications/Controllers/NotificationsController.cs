@@ -30,10 +30,6 @@ namespace Gadget.Notifications.Controllers
         public async Task<IActionResult> CreateNotifier(string agentName, string serviceName,
             CreateWebhook createWebhook, CancellationToken cancellationToken)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest();
-            }
             await _notificationsService.RegisterNotifier(agentName, serviceName, createWebhook.Receiver,
                 createWebhook.NotifierType, cancellationToken);
             return Created("", "");
@@ -43,7 +39,8 @@ namespace Gadget.Notifications.Controllers
         public async Task<IActionResult> DeleteNotifier(string agentName, string serviceName,
             DeleteWebhook deleteWebhook, CancellationToken cancellationToken)
         {
-            await _notificationsService.DeleteNotifier(agentName, serviceName, deleteWebhook.Receiver, cancellationToken);
+            await _notificationsService.DeleteNotifier(agentName, serviceName, deleteWebhook.Receiver,
+                cancellationToken);
             return Ok();
         }
 

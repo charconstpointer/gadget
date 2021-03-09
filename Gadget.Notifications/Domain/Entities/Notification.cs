@@ -10,8 +10,8 @@ namespace Gadget.Notifications.Domain.Entities
         public Guid Id { get; }
         public string Agent { get; }
         public string Service { get; }
-        private readonly ISet<Notifier> _notifiers = new HashSet<Notifier>();
-        public IEnumerable<Notifier> Notifiers => _notifiers.ToImmutableList();
+        private readonly ISet<Receiver> _notifiers = new HashSet<Receiver>();
+        public IEnumerable<Receiver> Notifiers => _notifiers.ToImmutableList();
 
         public Notification(string agent, string service)
         {
@@ -20,14 +20,14 @@ namespace Gadget.Notifications.Domain.Entities
             Service = service ?? throw new ArgumentNullException(nameof(service));
         }
 
-        public void AddNotifier(Notifier notifier)
+        public void AddNotifier(Receiver receiver)
         {
-            _notifiers.Add(notifier);
+            _notifiers.Add(receiver);
         }
 
-        public void DeleteNotifier(Notifier notifier)
+        public void DeleteNotifier(Receiver receiver)
         {
-            _notifiers.Remove(notifier);
+            _notifiers.Remove(receiver);
         }
     }
 }

@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace Gadget.Notifications.Consumers
 {
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class MachineHealthConsumer : IConsumer<IMetricsData>
     {
         private readonly ILogger<MachineHealthConsumer> _logger;

@@ -1,6 +1,5 @@
 ﻿using System;
 using Gadget.Notifications.Domain.Entities;
-using Gadget.Notifications.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gadget.Notifications.Persistence
@@ -20,7 +19,7 @@ namespace Gadget.Notifications.Persistence
             {
                 w.WithOwner().HasForeignKey("OwnerId");
                 w.Property<Guid>("Id");
-                w.Property(wh => wh.Receiver);
+                w.Property(wh => wh.Destination);
                 w.Property(wh => wh.CreatedAt);
                 w.Property(wh => wh.NotifierType);
                 w.HasKey("Id");
