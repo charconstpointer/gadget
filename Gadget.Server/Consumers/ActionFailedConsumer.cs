@@ -16,7 +16,7 @@ namespace Gadget.Server.Consumers
 
         public async Task Consume(ConsumeContext<IActionFailed> context)
         {
-            _logger.LogError("something failed:)");
+            _logger.LogError($"Could not execute action {context.Message.Action} {context.Message.Agent}/{context.Message.Service} on {context.Message.Date}, {context.Message.Reason}");
         }
     }
 }

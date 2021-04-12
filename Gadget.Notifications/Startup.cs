@@ -5,7 +5,6 @@ using Gadget.Notifications.Hubs;
 using Gadget.Notifications.Persistence;
 using Gadget.Notifications.Services.Interfaces;
 using MassTransit;
-using MassTransit.ActivityTracing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -51,7 +50,6 @@ namespace Gadget.Notifications
                             configurator.Username("guest");
                             configurator.Password("guest");
                         });
-                    cfg.PropagateActivityTracingContext();
 
                     cfg.ConfigureEndpoints(context);
                 });

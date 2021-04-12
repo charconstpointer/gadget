@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Gadget.Messaging.Contracts.Commands.v1;
+using Gadget.Messaging.Contracts.Responses;
 using Gadget.Server.Dto.V1;
 using Gadget.Server.Persistence;
 using MassTransit;
@@ -15,13 +16,16 @@ namespace Gadget.Server.Services
     {
         private readonly GadgetContext _context;
         private readonly IPublishEndpoint _publishEndpoint;
+        private readonly IBus _bus;
         private readonly ILogger<AgentsService> _logger;
 
-        public AgentsService(GadgetContext context, IPublishEndpoint publishEndpoint, ILogger<AgentsService> logger)
+        public AgentsService(GadgetContext context, IPublishEndpoint publishEndpoint, ILogger<AgentsService> logger,
+            IBus bus)
         {
             _context = context;
             _publishEndpoint = publishEndpoint;
             _logger = logger;
+            _bus = bus;
         }
 
         public async Task<IEnumerable<AgentDto>> GetAgents()
@@ -97,14 +101,22 @@ namespace Gadget.Server.Services
 
         public async Task RestartService(string agentName, string serviceName)
         {
+            var service = $"{agentName}/{serviceName}";
             try
             {
-                await _publishEndpoint.Publish<IRestartService>(new
-                    {
-                        ServiceName = serviceName,
-                        Agent = agentName
-                    },
-                    context => { context.SetRoutingKey(serviceName); });
+                var client = _bus.CreateRequestClient<IRestartService>(new Uri($"queue:{agentName}"));
+                var response = await client.GetResponse<IActionResultResponse>(new
+                {
+                    Agent = agentName,
+                    ServiceName = serviceName
+                });
+                if (!response.Message.Success)
+                {
+                    _logger.LogError($"could not restart service {service}");
+                    return;
+                }
+
+                _logger.LogInformation($"Successfully restarted service {service}");
             }
             catch (Exception e)
             {
@@ -114,14 +126,22 @@ namespace Gadget.Server.Services
 
         public async Task StartService(string agentName, string serviceName)
         {
+            var service = $"{agentName}/{serviceName}";
             try
             {
-                await _publishEndpoint.Publish<IStartService>(new
-                    {
-                        ServiceName = serviceName,
-                        Agent = agentName
-                    },
-                    context => { context.SetRoutingKey(serviceName); });
+                var client = _bus.CreateRequestClient<IStartService>(new Uri($"queue:{agentName}"));
+                var response = await client.GetResponse<IActionResultResponse>(new
+                {
+                    Agent = agentName,
+                    ServiceName = serviceName
+                });
+                if (!response.Message.Success)
+                {
+                    _logger.LogError($"could not start service {service}");
+                    return;
+                }
+
+                _logger.LogInformation($"Successfully started service {service}");
             }
             catch (Exception e)
             {

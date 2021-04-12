@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using System.Reflection;
 using Gadget.Inspector.Consumers;
+using Gadget.Inspector.Extensions;
 using MassTransit;
-using MassTransit.ActivityTracing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,13 +23,11 @@ namespace Gadget.Inspector
             return Host.CreateDefaultBuilder(args)
                 .ConfigureServices((host, services) =>
                 {
+                    services.AddServices(host.Configuration);
+                    services.Configure<RequestedServices>(host.Configuration.GetSection("RequestedServices"));
                     services.AddLogging(cfg => cfg.AddSeq());
                     services.AddMassTransit(x =>
                     {
-                        x.AddConsumer<StartServiceConsumer>();
-                        x.AddConsumer<CheckAgentHealthConsumer>();
-                        x.AddConsumer<StopServiceConsumer>();
-                        x.AddConsumer<RestartServiceConsumer>();
                         x.AddConsumers(Assembly.GetExecutingAssembly());
                         x.UsingRabbitMq((context, cfg) =>
                         {
@@ -46,7 +44,6 @@ namespace Gadget.Inspector
                                 e.ConfigureConsumer<RestartServiceConsumer>(context);
                                 e.ConfigureConsumer<CheckAgentHealthConsumer>(context);
                             });
-                            cfg.PropagateActivityTracingContext();
                         });
                     });
                     services.AddMassTransitHostedService();

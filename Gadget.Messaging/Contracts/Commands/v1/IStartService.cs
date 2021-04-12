@@ -2,7 +2,7 @@
 {
     public interface IStartService
     {
-         string Agent { get;  }
-         string ServiceName { get;  }
+        string Agent { get; }
+        string ServiceName { get; }
     }
 }

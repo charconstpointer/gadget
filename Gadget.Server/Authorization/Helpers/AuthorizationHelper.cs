@@ -5,7 +5,7 @@ namespace Gadget.Server.Authorization.Helpers
 {
     public class AuthorizationHelper
     {
-        public void SetTokenCookie(string token, HttpResponse response)
+        public static void SetTokenCookie(string token, HttpResponse response)
         {
             var cookieOptions = new CookieOptions
             {
@@ -22,11 +22,7 @@ namespace Gadget.Server.Authorization.Helpers
                 return context.Request.Headers["X-Forwarded-For"];
             }
 
-            else
-            {
-                return context.Connection.RemoteIpAddress.MapToIPv4().ToString();
-            }
-                
+            return context.Connection.RemoteIpAddress?.MapToIPv4().ToString();
         }
     }
 }

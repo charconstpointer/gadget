@@ -1,8 +1,4 @@
-﻿using Gadget.Messaging.Contracts.Events;
-using Gadget.Messaging.SignalR;
-using MassTransit;
-using Microsoft.Extensions.Hosting;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -12,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Gadget.Messaging.Contracts.Events.v1;
 using Gadget.Messaging.SignalR.v1;
+using MassTransit;
+using Microsoft.Extensions.Hosting;
 
 namespace Gadget.Inspector
 {
@@ -20,9 +18,7 @@ namespace Gadget.Inspector
         private readonly PerformanceCounter _cpuCounter;
         private readonly IPublishEndpoint _publishEndpoint;
 
-        public InspectorResources(
-            PerformanceCounter cpuCounter, 
-            IPublishEndpoint publishEndpoint)
+        public InspectorResources(PerformanceCounter cpuCounter, IPublishEndpoint publishEndpoint)
         {
             _cpuCounter = cpuCounter;
             _publishEndpoint = publishEndpoint;
@@ -40,13 +36,13 @@ namespace Gadget.Inspector
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
         }
-       
+
         private MachineHealthData CheckMachineHealth()
         {
             var output = new MachineHealthData
             {
                 Agent = Environment.MachineName,
-                CpuPercentUsage = (int)_cpuCounter.NextValue(),
+                CpuPercentUsage = (int) _cpuCounter.NextValue(),
             };
 
             AddDrivesInfo(output);
@@ -60,8 +56,8 @@ namespace Gadget.Inspector
 
             foreach (var d in discs)
             {
-                model.DiscTotal += (int)(d.TotalSize / 1073741824f);
-                model.DiscOccupied += (int)(d.AvailableFreeSpace / 1073741824f);
+                model.DiscTotal += (int) (d.TotalSize / 1073741824f);
+                model.DiscOccupied += (int) (d.AvailableFreeSpace / 1073741824f);
             }
         }
 
@@ -83,4 +79,4 @@ namespace Gadget.Inspector
             }
         }
     }
- }  
+}

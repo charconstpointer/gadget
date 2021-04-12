@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.ServiceProcess;
 using System.Threading;
@@ -14,6 +15,7 @@ using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Gadget.Inspector
 {
@@ -21,65 +23,79 @@ namespace Gadget.Inspector
     {
         private readonly IPublishEndpoint _publishEndpoint;
         private readonly ILogger<Inspector> _logger;
+        private readonly int _loopInterval;
 
         private readonly IDictionary<string, ServiceControllerStatus> _services =
             new Dictionary<string, ServiceControllerStatus>();
 
-        public Inspector(IPublishEndpoint publishEndpoint, ILogger<Inspector> logger)
+        private readonly ICollection<Service> _svc;
+
+        public Inspector(IPublishEndpoint publishEndpoint, ILogger<Inspector> logger, IConfiguration configuration,
+            ICollection<Service> svc)
         {
             _publishEndpoint = publishEndpoint;
             _logger = logger;
+            _svc = svc;
+            _loopInterval = int.TryParse(configuration["MainLoopInterval"], out var interval) ? interval : 1;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Starting Inspector service");
+            _logger.LogInformation($"Starting watcher {DateTime.UtcNow}");
             await RegisterAgent(stoppingToken);
 
-            _logger.LogInformation($"Starting watcher {DateTime.UtcNow}");
-            while (!stoppingToken.IsCancellationRequested)
+            // while (!stoppingToken.IsCancellationRequested)
+            // {
+            //     foreach (var serviceController in ServiceController.GetServices())
+            //     {
+            //         await WatchForServiceChanges(serviceController, stoppingToken);
+            //     }
+            //
+            //     await Task.Delay(TimeSpan.FromSeconds(_loopInterval), stoppingToken);
+            // }
+        }
+
+        private async Task WatchForServiceChanges(ServiceController serviceController, CancellationToken stoppingToken)
+        {
+            serviceController.Refresh();
+            var current = serviceController.Status;
+            if (!_services.TryGetValue(serviceController.ServiceName, out var previous))
             {
-                foreach (var serviceController in ServiceController.GetServices())
-                {
-                    serviceController.Refresh();
-                    var current = serviceController.Status;
-                    if (!_services.TryGetValue(serviceController.ServiceName, out var previous))
-                    {
-                        _services[serviceController.ServiceName] = current;
-                        continue;
-                    }
-
-                    if (current == previous)
-                    {
-                        continue;
-                    }
-
-                    _services[serviceController.ServiceName] = current;
-                    await _publishEndpoint.Publish<IServiceStatusChanged>(new
-                    {
-                        Agent = Environment.MachineName,
-                        Name = serviceController.ServiceName,
-                        Status = current.ToString()
-                    }, stoppingToken);
-                }
-
-                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                _services[serviceController.ServiceName] = current;
+                return;
             }
+
+            if (current == previous)
+            {
+                return;
+            }
+
+            _services[serviceController.ServiceName] = current;
+            await _publishEndpoint.Publish<IServiceStatusChanged>(new
+            {
+                Agent = Environment.MachineName,
+                Name = serviceController.ServiceName,
+                Status = current.ToString()
+            }, stoppingToken);
         }
 
         private async Task RegisterAgent(CancellationToken stoppingToken)
         {
             _logger.LogInformation($"Registering new agent {Environment.MachineName}");
+            foreach (var service in _svc)
+            {
+                _ = service.Watch(stoppingToken);
+            }
+
             await _publishEndpoint.Publish<IRegisterNewAgent>(new
             {
                 Agent = Environment.MachineName,
                 Address = GetAddress(),
-                Services = ServiceController.GetServices().Select(s => new ServiceDescriptor
+                Services = _svc.Select(s => new ServiceDescriptor
                 {
-                    Name = s.ServiceName,
+                    Agent = Environment.MachineName,
+                    Name = s.Name,
                     Status = s.Status.ToString(),
-                    LogOnAs = GetServiceUser(s.ServiceName),
-                    Description = GetServiceDescription(s.ServiceName)
                 })
             }, stoppingToken);
         }
@@ -101,7 +117,7 @@ namespace Gadget.Inspector
             {
                 output = wmiService["startname"].ToString();
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // ignored
             }
@@ -118,7 +134,7 @@ namespace Gadget.Inspector
             {
                 output = wmiService["Description"].ToString();
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 // ignored
             }

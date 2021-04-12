@@ -1,37 +1,42 @@
 ﻿using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Gadget.Server.Authorization.Providers
 {
-    public class PRMockProvider : ILoginProvider
+    public class PrMockProvider : ILoginProvider
     {
         private readonly Dictionary<string, string> _users;
 
-        public PRMockProvider()
+        public PrMockProvider()
         {
-            _users = new Dictionary<string, string> { 
-                { "test", "5a105e8b9d40e1329780d62ea2265d8a" },
-                {"lucek", "ff29a82b9ea498210089965fb5216806" } };
+            _users = new Dictionary<string, string>
+            {
+                {"test", "5a105e8b9d40e1329780d62ea2265d8a"},
+                {"lucek", "ff29a82b9ea498210089965fb5216806"}
+            };
         }
+
         public bool PasswordValid(string userName, string password)
         {
-            _users.TryGetValue(userName, out string  passwordHashed);
+            _users.TryGetValue(userName, out var passwordHashed);
             return passwordHashed == HashMd5(password);
         }
 
 
-        private string HashMd5(string value)
+        private static string HashMd5(string value)
         {
-            System.Security.Cryptography.MD5CryptoServiceProvider x = new System.Security.Cryptography.MD5CryptoServiceProvider();
-            byte[] data = System.Text.Encoding.ASCII.GetBytes(value);
+            var x = new MD5CryptoServiceProvider();
+            var data = Encoding.ASCII.GetBytes(value);
             data = x.ComputeHash(data);
 
-            StringBuilder sBuilder = new StringBuilder();
+            var sBuilder = new StringBuilder();
 
-            for (int i = 0; i < data.Length; i++)
+            foreach (var t in data)
             {
-                sBuilder.Append(data[i].ToString("x2"));
+                sBuilder.Append(t.ToString("x2"));
             }
+
             return sBuilder.ToString();
         }
     }
